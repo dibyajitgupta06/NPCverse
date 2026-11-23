@@ -6,6 +6,12 @@ import { MemoryStore } from '../game/MemoryStore';
 import type { NpcId, StoredMemory } from '../game/types';
 
 const memoryStore = new MemoryStore();
+const playerStorageKey = 'npcverse.playerId';
+function getPlayerId(): string {
+  let id = localStorage.getItem(playerStorageKey);
+  if (!id) { id = crypto.randomUUID(); localStorage.setItem(playerStorageKey, id); }
+  return id;
+}
 
 export default function App() {
   const gameHost = useRef<HTMLDivElement>(null);
@@ -63,6 +69,10 @@ export default function App() {
       }
       const next = memoryStore.addTurn(activeNpc, current, text);
       setReply(text); setMemories(next.memories); setRelationship(next.relationship);
+      void fetch('/api/save-turn', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: getPlayerId(), npcId: activeNpc, playerText: current, npcText: text, memories: next.memories.slice(0, 5), relationship: next.relationship }),
+      }).catch(() => undefined);
     } finally { setBusy(false); }
   };
 
@@ -106,7 +116,7 @@ export default function App() {
             </button>;
           })}
           <div className="memory-card"><p className="eyebrow">A NOTE ON MEMORY</p><p>People here remember the little things. A promise. A passing thought. The things you might not expect them to keep.</p><span className="memory-spark">✳</span></div>
-          <div className="relationship-card"><div className="panel-heading"><span>YOUR FOOTPRINT</span><span>LOCAL SAVE</span></div><p>Conversations are kept on this device. Return to someone and see what stayed with them.</p></div>
+          <div className="relationship-card"><div className="panel-heading"><span>YOUR FOOTPRINT</span><span>LOCAL SAVE</span></div><p>Conversations save locally first, with optional PostgreSQL sync when the backend is configured.</p></div>
         </aside>
       </section>
       <footer className="footer"><span>NPCVERSE © 2026</span><span>BUILT FOR THE STORIES BETWEEN THE QUESTS.</span><span>PROTOTYPE 0.1.0</span></footer>
