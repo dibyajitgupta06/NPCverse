@@ -26,12 +26,18 @@ export async function persistTurn(input: {
   try {
     await client.query('BEGIN');
     await client.query('INSERT INTO players (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [input.playerId]);
-    const conversation = await client.query(
-      `INSERT INTO conversations (player_id, npc_id)
-       VALUES ($1, $2)
-       RETURNING id`,
+    const existing = await client.query(
+      `SELECT id FROM conversations
+       WHERE player_id = $1 AND npc_id = $2
+       ORDER BY last_message_at DESC LIMIT 1`,
       [input.playerId, input.npcId],
     );
+    const conversation = existing.rows[0]?.id
+      ? existing
+      : await client.query(
+          'INSERT INTO conversations (player_id, npc_id) VALUES ($1, $2) RETURNING id',
+          [input.playerId, input.npcId],
+        );
     const conversationId = conversation.rows[0].id as string;
     const playerMessage = await client.query(
       'INSERT INTO messages (conversation_id, speaker, content) VALUES ($1, $2, $3) RETURNING id',
