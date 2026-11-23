@@ -17,7 +17,6 @@ export default function App() {
   const [memories, setMemories] = useState<StoredMemory[]>([]);
   const [relationship, setRelationship] = useState(0);
   const npc = NPCS.find((item) => item.id === activeNpc);
-  const nearbyNpc = NPCS.find((item) => item.id === nearby);
 
   const openNpc = useCallback((id: NpcId) => {
     const def = NPCS.find((item) => item.id === id)!;
