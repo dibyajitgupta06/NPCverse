@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "server": "tsx server/index.ts",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "psql \"$DATABASE_URL\" -f db/migrations/001_initial_schema.sql"
+    "db:migrate": "tsx scripts/migrate.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
