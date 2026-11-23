@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import OpenAI from 'openai';
+import { persistTurn, pool } from './db';
 
 const app = express();
 app.use(cors({ origin: ['http://localhost:5173', 'http://127.0.0.1:5173'] }));
@@ -13,7 +14,13 @@ const profiles: Record<string, { name: string; role: string; personality: string
 };
 const client = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
-app.get('/health', (_req, res) => res.json({ ok: true, aiEnabled: Boolean(client) }));
+app.get('/health', async (_req, res) => {
+  let databaseReady = false;
+  if (pool) {
+    try { await pool.query('SELECT 1'); databaseReady = true; } catch { databaseReady = false; }
+  }
+  res.json({ ok: true, aiEnabled: Boolean(client), databaseConfigured: Boolean(pool), databaseReady });
+});
 
 app.post('/api/dialogue', async (req, res) => {
   const { npcId, message, history = [], memories = [] } = req.body ?? {};
@@ -39,6 +46,22 @@ app.post('/api/dialogue', async (req, res) => {
   } catch (error) {
     console.error('Dialogue request failed:', error);
     return res.status(502).json({ error: 'Dialogue service temporarily unavailable.' });
+  }
+});
+
+app.post('/api/save-turn', async (req, res) => {
+  if (!pool) return res.status(503).json({ error: 'PostgreSQL is not configured.' });
+  const { playerId, npcId, playerText, npcText, memories = [], relationship = 0 } = req.body ?? {};
+  const validUuid = typeof playerId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(playerId);
+  if (!validUuid || !['arthur', 'elara'].includes(npcId) || typeof playerText !== 'string' || typeof npcText !== 'string' || !playerText.trim() || !npcText.trim()) {
+    return res.status(400).json({ error: 'Invalid save-turn payload.' });
+  }
+  try {
+    const saved = await persistTurn({ playerId, npcId, playerText, npcText, memories, relationship });
+    return res.json({ saved });
+  } catch (error) {
+    console.error('PostgreSQL save failed:', error);
+    return res.status(500).json({ error: 'Could not save this conversation.' });
   }
 });
 
