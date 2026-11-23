@@ -23,7 +23,10 @@ export default function App() {
     const def = NPCS.find((item) => item.id === id)!;
     const save = memoryStore.recall(id);
     setActiveNpc(id); setMemories(save.memories); setRelationship(save.relationship);
-    setReply(save.history.length ? `Welcome back. ${def.fallback('hello', save.memories.length)}` : def.greeting);
+    const remembered = save.memories[0];
+    setReply(remembered
+      ? `I remember you told me: “${remembered.content}”. How has that been going?`
+      : save.history.length ? `Welcome back. ${def.fallback('hello', save.memories.length)}` : def.greeting);
     setMessage('');
   }, []);
 
@@ -49,7 +52,7 @@ export default function App() {
       const save = memoryStore.recall(activeNpc);
       let text = '';
       try {
-        const response = await fetch('http://localhost:8787/api/dialogue', {
+        const response = await fetch('/api/dialogue', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ npcId: activeNpc, message: current, history: save.history.slice(-8), memories: save.memories.slice(0, 5) }),
         });
