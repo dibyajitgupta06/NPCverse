@@ -9,6 +9,7 @@ export class NPCverseScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
   private nearby: NpcId | null = null;
+  private promptText!: Phaser.GameObjects.Text;
   private callbacks: SceneCallbacks;
   constructor(callbacks: SceneCallbacks) { super('Everwood'); this.callbacks = callbacks; }
 
@@ -21,6 +22,11 @@ export class NPCverseScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(480, 470, playerTexture);
     this.player.setDepth(20).setCollideWorldBounds(true);
     (this.player.body as Phaser.Physics.Arcade.Body).setSize(12, 10).setOffset(2, 18);
+    this.addWorldCollisions();
+    this.promptText = this.add.text(0, 0, '[ E ]  TALK', {
+      fontFamily: 'DM Mono, monospace', fontSize: '10px', color: '#fff0c9',
+      backgroundColor: '#293b2e', padding: { x: 7, y: 5 },
+    }).setOrigin(0.5).setDepth(1000).setVisible(false);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
     NPCS.forEach((npc) => {
@@ -50,6 +56,24 @@ export class NPCverseScene extends Phaser.Scene {
     px(7, 22, 5, 7, trousers); px(13, 22, 5, 7, trousers);
     px(6, 28, 6, 3, 0x49382d); px(13, 28, 6, 3, 0x49382d);
     g.generateTexture(key, 24, 34); g.destroy(); return key;
+  }
+
+  private addWorldCollisions() {
+    const obstacles = [
+      this.add.rectangle(375, 244, 168, 18, 0xffffff, 0),
+      this.add.rectangle(642, 356, 163, 18, 0xffffff, 0),
+      this.add.rectangle(95, 100, 42, 36, 0xffffff, 0),
+      this.add.rectangle(175, 200, 42, 36, 0xffffff, 0),
+      this.add.rectangle(790, 100, 42, 36, 0xffffff, 0),
+      this.add.rectangle(850, 260, 42, 36, 0xffffff, 0),
+      this.add.rectangle(760, 520, 42, 36, 0xffffff, 0),
+      this.add.rectangle(160, 550, 42, 36, 0xffffff, 0),
+      this.add.rectangle(900, 470, 42, 36, 0xffffff, 0),
+    ];
+    for (const obstacle of obstacles) {
+      this.physics.add.existing(obstacle, true);
+      this.physics.add.collider(this.player, obstacle);
+    }
   }
 
   private drawWorld() {
@@ -113,6 +137,12 @@ export class NPCverseScene extends Phaser.Scene {
       if (d < distance) { distance = d; closest = npc.id; }
     }
     if (closest !== this.nearby) { this.nearby = closest; this.callbacks.onNearbyNpc(closest); }
+    if (closest) {
+      const person = NPCS.find((item) => item.id === closest)!;
+      this.promptText.setPosition(person.x, person.y - 48).setVisible(true);
+    } else {
+      this.promptText.setVisible(false);
+    }
     if (closest && Phaser.Input.Keyboard.JustDown(this.keys.E)) this.game.events.emit('npc-interact', closest);
   }
 }
