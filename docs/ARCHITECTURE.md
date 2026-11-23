@@ -21,8 +21,9 @@ React UI
           └── Memory extraction
               |
        Persistence adapter
-          ├── v0.1: browser localStorage
-          └── planned: PostgreSQL + pgvector
+          ├── v0.1: browser localStorage fallback
+          └── PostgreSQL: conversations, messages, memories, relationships
+                 └── planned: pgvector semantic retrieval
 ```
 
 ## Boundaries
@@ -82,6 +83,10 @@ The client treats model output as untrusted display text. The server does not pr
 - `OPENAI_API_KEY`: server-only API key.
 - `OPENAI_MODEL`: optional model override.
 - `PORT`: API port (default 8787).
+
+## PostgreSQL persistence
+
+The optional PostgreSQL adapter is in `server/db.ts`; the initial schema is `db/migrations/001_initial_schema.sql`. `DATABASE_URL` enables writes to players, conversations, messages, memories and relationships. Browser localStorage remains the offline-first save layer. The current prototype uses a locally generated anonymous player UUID; add authenticated player identity and authorization before exposing cloud saves publicly.
 
 ## Future persistence migration
 
