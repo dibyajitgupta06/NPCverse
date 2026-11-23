@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: npcverse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: npcverse
+      POSTGRES_PASSWORD: npcverse
+      POSTGRES_DB: npcverse
+    ports:
+      - "5432:5432"
+    volumes:
+      - npcverse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U npcverse -d npcverse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  npcverse_pgdata:
